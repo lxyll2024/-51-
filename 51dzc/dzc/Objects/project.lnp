@@ -1,0 +1,16 @@
+".\Objects\main.obj",
+".\Objects\LCD1602.obj",
+".\Objects\DS1302.obj",
+".\Objects\UART.obj",
+".\Objects\Timer0.obj",
+".\Objects\Key.obj",
+".\Objects\hx711.obj",
+".\Objects\weight.obj",
+".\Objects\Buzzer.obj",
+".\Objects\AT24C02.obj",
+".\Objects\I2C.obj",
+".\Objects\OneWire.obj",
+".\Objects\DS18B20.obj",
+".\Objects\Delay.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 

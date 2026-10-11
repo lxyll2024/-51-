@@ -1,0 +1,64 @@
+C51 COMPILER V9.54   HX711                                                                 10/31/2024 21:36:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE HX711
+OBJECT MODULE PLACED IN .\Objects\hx711.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE hx711.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\hx711
+                    -.lst) TABS(2) OBJECT(.\Objects\hx711.obj)
+
+line level    source
+
+   1          #include "HX711.h"
+   2          
+   3          
+   4          //****************************************************
+   5          //延时
+   6          //****************************************************
+   7          void Delay__hx711_us(void)
+   8          {
+   9   1        _nop_();
+  10   1        _nop_();
+  11   1      }
+  12          
+  13          //****************************************************
+  14          //HX711读取
+  15          //****************************************************
+  16          unsigned long HX711_Read(void)  //增益128
+  17          {
+  18   1        unsigned long count;  //2^24 防止外溢
+  19   1        unsigned char i; 
+  20   1          HX711_DOUT=1;       //置高AD转换 
+  21   1        Delay__hx711_us();    //延时
+  22   1          HX711_SCK=0;        //使能AD（PD_SCK 置低）写入
+  23   1          count=0;
+  24   1        EA = 1;                  //打开中断
+  25   1          while(HX711_DOUT);    //AD转换未结束则等待，否则开始读取
+  26   1        EA = 0;                 //关闭中断
+  27   1          for(i=0;i<24;i++)      //2^24count移位24次 
+  28   1        { 
+  29   2            HX711_SCK=1;      //PD_SCK 置高（发送脉冲）
+  30   2            count=count<<1;      //下降沿来时变量Count左移一位，右侧补零
+  31   2          HX711_SCK=0;         //使能AD（PD_SCK 置低）写入
+  32   2            if(HX711_DOUT)     //置高AD转换 
+  33   2            count++; 
+  34   2        } 
+  35   1        HX711_SCK=1;                //PD_SCK 置高（发送脉冲）
+  36   1          count=count^0x800000;     //第25个脉冲下降沿来时，转换数据
+  37   1        Delay__hx711_us();          //延时
+  38   1        HX711_SCK=0;                //使能AD（PD_SCK 置低）写入
+  39   1        return(count);
+  40   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     68    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

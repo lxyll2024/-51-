@@ -1,0 +1,104 @@
+C51 COMPILER V9.54   TIMER0                                                                10/31/2024 21:36:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIMER0
+OBJECT MODULE PLACED IN .\Objects\Timer0.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE Timer0.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Time
+                    -r0.lst) TABS(2) OBJECT(.\Objects\Timer0.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          
+   3          //void Timer0Init(void)   //1毫秒@12.000MHz计时器T0
+   4          //{
+   5          //  TMOD &= 0xF0;   //设置定时器模式，把TMOD的低4位清零，高4位不变
+   6          //  TMOD |= 0x01;   //设置定时器模式，将前4位置0，不用T1计时器，用T0，给最低位置1，高4位不变
+   7          //  TL0 = 0x18;   //设置定时初值低位=64535%256
+   8          //  TH0 = 0xFC;   //设置定时初值高位=64535/256
+   9          //  TF0 = 0;    //清除TF0标志，定时器标志=0表示使用它
+  10          //  TR0 = 1;    //定时器0开始计时
+  11          //  ET0=1;//分开关接通=1
+  12          //  EA=1;//总开关=1接通
+  13          //  PT0=0;//优先级配置
+  14          //}
+  15          void Timer0Init(void)   //1毫秒@11.0592MHz计时器T0
+  16          {
+  17   1        TMOD &= 0xF0;   //设置定时器模式，把TMOD的低4位清零，高4位不变
+  18   1        TMOD |= 0x01;   //设置定时器模式，将前4位置0，不用T1计时器，用T0，给最低位置1，高4位不变
+  19   1        TL0 = 0x66;   //设置定时初值低位=64535%256
+  20   1        TH0 = 0xFC;   //设置定时初值高位=64535/256
+  21   1        TF0 = 0;    //清除TF0标志，定时器标志=0表示使用它
+  22   1        TR0 = 1;    //定时器0开始计时
+  23   1        ET0=1;//分开关接通=1
+  24   1        EA=1;//总开关=1接通
+  25   1        PT0=0;//优先级配置
+  26   1      }
+  27          ////void Timer0Init(void)   //1毫秒@12.000MHz计时器T0
+  28          ////{
+  29          ////  TMOD = 0x01;  //设置定时器模式，将前4位置0，不用T1计时器，用T0
+  30                //  TR0 = 1;    //定时器0开始计时
+  31          ////  TL0 = 64535%256;    //设置定时初值低位=64535%256
+  32          ////  TH0 = 64535/256;    //设置定时初值高位=64535/256与65535相差1000溢出
+  33          ////  TF0 = 0;    //清除TF0标志，定时器标志=0表示使用它
+  34          ////  ET0=1;//分开关接通=1
+  35          ////  EA=1;//总开关=1接通
+  36          ////  PT0=0;//优先级配置
+  37          //}
+  38          /*
+  39          TMOD=GATE C/T M1 M0//T1计时器 GATE C/T M1 M0//T0计时器
+  40          
+  41          GATE =0->TR0 = 1->TL0->TH0->TF0 = 0->ET0=1->EA=1->PT0=0(可省略)
+  42          设置模式->开始计时->设置范围->清除TF0标志->分开关接通=1->总开关=1接通->优先级配置
+  43          
+  44          */
+  45          /*
+  46          定时器中断函数模板
+  47          void Timer0Routine() interrupt 1//1是T0计时器的中断
+  48          {
+  49            static unsigned int T0Count;
+  50            TL0 = 0x18;   //设置定时初值
+  51            TH0 = 0xFC;   //设置定时初值
+  52              T0Count++;
+  53              if(T0Count>=1000)
+  54              {
+C51 COMPILER V9.54   TIMER0                                                                10/31/2024 21:36:11 PAGE 2   
+
+  55              T0Count=0;
+  56              }
+  57          }
+  58          */
+  59          //void main()
+  60          //{
+  61          //    Timer0_Init();
+  62          //  while(1)
+  63          //  {
+  64          //                               
+  65          //  }
+  66          //}
+  67          //void Timer0Routine() interrupt 1//1是T0计时器的中断
+  68          //{
+  69          //  static unsigned int T0Count;
+  70          //  TL0 = 0x18;   //设置定时初值
+  71          //  TH0 = 0xFC;   //设置定时初值
+  72          //    T0Count++;
+  73          //    if(T0Count>=1000)//隔一秒执行一次
+  74          //    {
+  75          //    T0Count=0;
+  76          //    P1_0=~P1_0;//过1秒变一次
+  77          //    }
+  78          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     23    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

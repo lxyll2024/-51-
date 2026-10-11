@@ -1,0 +1,291 @@
+C51 COMPILER V9.54   KEY                                                                   10/31/2024 21:36:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\Key.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE Key.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Key.lst
+                    -) TABS(2) OBJECT(.\Objects\Key.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "Delay.h"
+   3          #include "ds1302.h"
+   4          #include "weight.h"
+   5          #include "lcd1602.h"
+   6          sbit DS1302_SCLK = P3^6;  //看原理图ds1302模块的3个代表定义方便查看,防止模块冲突
+   7          sbit DS1302_IO = P3^4;
+   8          sbit DS1302_CE = P3^5;  //单片机上电是默认1
+   9          sbit LED=P2^4;
+  10          //unsigned char i;
+  11          //获取独立按键建码，范围0-4，无按键按时返回0
+  12          unsigned char Key()
+  13          {
+  14   1        
+  15   1        unsigned char Keynum=0;
+  16   1        P1_7=0;
+  17   1        
+  18   1        if(P3_1==0){Delay(20);while(P3_1==0);Delay(20);Keynum=1;}
+  19   1        if(P3_0==0){Delay(20);while(P3_0==0);Delay(20);Keynum=2;}
+  20   1        if(P3_2==0){Delay(20);while(P3_2==0);Delay(20);Keynum=3;}
+  21   1        if(P3_3==0){Delay(20);while(P3_3==0);Delay(20);Keynum=4;}
+  22   1        
+  23   1        if(P1_3==0){Delay(20);while(P1_3==0);Delay(20);Keynum=5;}
+  24   1        if(P1_2==0){Delay(20);while(P1_2==0);Delay(20);Keynum=6;}
+  25   1        if(P1_1==0){Delay(20);while(P1_1==0);Delay(20);Keynum=7;}
+  26   1        if(P1_0==0){Delay(20);while(P1_0==0);Delay(20);Keynum=8;}
+  27   1        
+  28   1        return Keynum;
+  29   1      }
+  30          
+  31          void Key_deal() //按键处理
+  32          {
+  33   1            if(mode == 0 && Keynum==8)
+  34   1            {
+  35   2                DS1302_CE = 1;
+  36   2                DS1302_SCLK = 1;
+  37   2              mode=6;
+  38   2              Keynum=0;
+  39   2              Display_qingping();
+  40   2              LCD_ShowString(1,1,"Temperature:");
+  41   2              
+  42   2      
+  43   2            }
+  44   1            
+  45   1              if(mode==6)
+  46   1            {
+  47   2              if(Keynum==8)
+  48   2              {
+  49   3                DS1302_CE = 0;
+  50   3                DS1302_SCLK = 0;
+  51   3              Display_qingping();
+  52   3              Display_M1();
+  53   3              mode=0;
+  54   3              }
+C51 COMPILER V9.54   KEY                                                                   10/31/2024 21:36:11 PAGE 2   
+
+  55   2              
+  56   2            }
+  57   1      
+  58   1              if(Keynum==1 && (mode == 0 || mode == 1))     //设置运行模式选择
+  59   1              {
+  60   2      
+  61   2                  i++;
+  62   2                  if(mode == 0)
+  63   2                  {
+  64   3                      mode = 1;
+  65   3                  } //mode=0时间展示界面
+  66   2                  else if(i>6)
+  67   2                  {
+  68   3                      i=0;
+  69   3                  }
+  70   2                  if(mode == 1 && i==0)
+  71   2                  {
+  72   3                      mode = 0;
+  73   3                      DS1302_SetTime();
+  74   3                  }  //调时间后调好在重新写入
+  75   2              }
+  76   1      
+  77   1              if(Keynum==2 && (mode == 0 || mode == 2)) //按键2转换界面
+  78   1              {
+  79   2                  Display_qingping();
+  80   2                  mode+=2;mode%=4;
+  81   2                  if(mode == 0)
+  82   2                  {
+  83   3                      qupi=0;
+  84   3                      Display_M1();
+  85   3                  }
+  86   2              }
+  87   1              if(mode == 2)
+  88   1              {
+  89   2                  if(Keynum==5){Range+=100;if(Range>5000){Range=100;}}
+  90   2                  if(Keynum==6){Range-=100;if(Range==0){Range=5000;}}
+  91   2                  if(Keynum==7)
+  92   2                  {
+  93   3                      Get_Maopi();
+  94   3                  }
+  95   2              }
+  96   1              if(Keynum==3 && (mode == 0||mode == 3))
+  97   1              {
+  98   2                  Display_qingping();
+  99   2                  mode = 3;
+ 100   2                  m3++;
+ 101   2                if(m3==1){AT24C02_Writebyte_qingling();}
+ 102   2                  if(m3>3){m3=0;}
+ 103   2              }
+ 104   1              if(mode==3)
+ 105   1              {
+ 106   2                  if(m3==0)
+ 107   2                  {
+ 108   3                      m3_qingling=0;
+ 109   3                      Display_M3_Store();
+ 110   3                      Delay(1000);
+ 111   3                      Display_qingping();
+ 112   3                      Display_M1();
+ 113   3                      mode=0;
+ 114   3      
+ 115   3                    sum=Weight_Store_Num + Bad_Num;
+ 116   3                      Month=DS1302_Time[1];
+C51 COMPILER V9.54   KEY                                                                   10/31/2024 21:36:11 PAGE 3   
+
+ 117   3                      Day=DS1302_Time[2];
+ 118   3                      Hour=DS1302_Time[3];
+ 119   3                      Minute=DS1302_Time[4];
+ 120   3                      
+ 121   3                  AT24C02_Writebyte_Data();
+ 122   3                  }
+ 123   2                  if(m3==1) //调整标重
+ 124   2                  {
+ 125   3                    if(m3_qingling==0){AT24C02_Writebyte_qingling_data();m3_qingling=1;}
+ 126   3                      m3_Flag=1;
+ 127   3                      if(Keynum==5){Weight_Standard+=200;if(Weight_Standard>5000){Weight_Standard=200;}}
+ 128   3                      if(Keynum==6){Weight_Standard-=200;if(Weight_Standard<=0){Weight_Standard=5000;}}
+ 129   3                  }
+ 130   2                  if(m3==2) //调整容错
+ 131   2                  {
+ 132   3                      if(Keynum==5){ERROR++;if(ERROR>10){ERROR=0;}}
+ 133   3                      if(Keynum==6){ERROR--;if(ERROR>10){ERROR=10;}}
+ 134   3                  }
+ 135   2                  if(m3==3) //开始测量
+ 136   2                  {
+ 137   3                      
+ 138   3                      if(Weight_Standard==0)
+ 139   3                      {
+ 140   4                          Weight_Standard=200;
+ 141   4                      }
+ 142   3                      else
+ 143   3                      {
+ 144   4                          num=(unsigned int)(Weight_Shiwu/Weight_Standard);
+ 145   4                      }
+ 146   3      
+ 147   3                      if(num==0 && Weight_Shiwu!=0)
+ 148   3                      {
+ 149   4                          num=1;
+ 150   4                      }
+ 151   3                      FanWei_Min=Weight_Standard-ERROR;
+ 152   3                      FanWei_Max=Weight_Standard+ERROR;
+ 153   3                      if(Weight_Flag==1) //每1秒判断储存一次
+ 154   3                      {
+ 155   4                          num_Flag++;
+ 156   4                          if((Weight_Shiwu/num)<=FanWei_Max && (Weight_Shiwu/num)>=FanWei_Min)
+ 157   4                          {
+ 158   5                              Weight_Shiwu_Flag1=Weight_Shiwu;
+ 159   5                          }
+ 160   4      
+ 161   4                          if(((Weight_Shiwu/num)<FanWei_Min || (Weight_Shiwu/num)>FanWei_Max)&& Weight_Shiwu!=0)
+ 162   4                          {
+ 163   5                              //Bad[Bad_Num]=Weight_Shiwu;//== mode=0;
+ 164   5                              Bad_Num++;
+ 165   5                              LED=!LED;
+ 166   5                            
+ 167   5      
+ 168   5                          }
+ 169   4                          if(Weight_Shiwu_Flag2==Weight_Shiwu_Flag1 && Weight_Shiwu_Flag2!=0)
+ 170   4                          {
+ 171   5                             //Weight_Store[Weight_Store_Num] = Weight_Shiwu_Flag2;
+ 172   5      
+ 173   5                              Weight_Store_Num++;
+ 174   5                              if(Weight_Store_Num>5)
+ 175   5                              {Weight_Store_Num=0;}
+ 176   5                              LED=!LED;
+ 177   5                              
+ 178   5                          }
+C51 COMPILER V9.54   KEY                                                                   10/31/2024 21:36:11 PAGE 4   
+
+ 179   4      
+ 180   4                          Weight_Flag=0;
+ 181   4                      }
+ 182   3                      if(num_Flag%2 != 0)
+ 183   3                      {
+ 184   4                          Weight_Shiwu_Flag2=Weight_Shiwu_Flag1;
+ 185   4                      }
+ 186   3      
+ 187   3                  }
+ 188   2              }
+ 189   1      
+ 190   1              if(Keynum==4 && mode==0 && m3_Flag==0) //未储存数据
+ 191   1              {
+ 192   2                  Display_qingping();
+ 193   2                  Display_M3_NotStore();
+ 194   2                  Delay(1000);
+ 195   2                  Display_qingping();
+ 196   2                  Display_M1();
+ 197   2              }
+ 198   1              if(Keynum==4 && mode==0 && m3_Flag==1) //储存了数据
+ 199   1              {
+ 200   2                  mode=5;
+ 201   2                 // m3_Flag=0;
+ 202   2              }
+ 203   1              if(mode==5 && (Keynum==4|| Keynum==8))
+ 204   1              {
+ 205   2                  AT24C02_Readbyte_Data();
+ 206   2                if(sum<Bad_Num1){sum=Bad_Num1;}
+ 207   2                  Display_qingping();
+ 208   2                if(Keynum==4)
+ 209   2                {m4++;}
+ 210   2                  if(m4==4)
+ 211   2                  {
+ 212   3                      if(Keynum==8)
+ 213   3                      {
+ 214   4                        UART_Send_num();
+ 215   4                          Display_qingping();
+ 216   4                          Display_M4_UART();//已发送数据显示
+ 217   4                          Delay(1000);
+ 218   4                          Display_qingping();
+ 219   4                          LED=!LED;
+ 220   4                          k8=1;
+ 221   4                      }
+ 222   3                  }//发送数据
+ 223   2                  if(m4==5)
+ 224   2                  {     
+ 225   3                      Display_M1();
+ 226   3                      mode=0;
+ 227   3                      m4=0;
+ 228   3                    k8=0;
+ 229   3                  }
+ 230   2                  switch(m4)
+ 231   2                  {
+ 232   3                      case 1:Display_M4_Time();break;
+ 233   3                      case 2:Display_M4_Standard();break;
+ 234   3                      case 3:Display_M4_Num();break;
+ 235   3                      case 4:if(k8==0){ Display_M4_Send();}else{Display_M4_successful();}break;
+ 236   3                  }
+ 237   2              }
+ 238   1      
+ 239   1              switch(mode)
+ 240   1              {
+C51 COMPILER V9.54   KEY                                                                   10/31/2024 21:36:11 PAGE 5   
+
+ 241   2                  case 0: Timeshow();break;
+ 242   2                  case 1: TimeSet();break;
+ 243   2                  case 2: Display_M2();Get_Weight();break;
+ 244   2                  case 3: if(m3==3){Display_M3_Measure();Get_Weight();}else{Display_M3();Get_Weight();}break;
+ 245   2                      //case 4: Display_M3_Measure();break;
+ 246   2                  case 5: break;
+ 247   2                case 6:           if(T<0)
+ 248   2                  {
+ 249   3                    LCD_ShowChar(2,1,'-'); 
+ 250   3                    T = -T;       
+ 251   3                  }
+ 252   2                  else
+ 253   2                  {
+ 254   3                    LCD_ShowChar(2,1,'+');
+ 255   3                  }
+ 256   2                  LCD_ShowNum(2,2,T,3);
+ 257   2                  LCD_ShowString(2,5," C");break;
+ 258   2              }
+ 259   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1314    ----
+   CONSTANT SIZE    =     16    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

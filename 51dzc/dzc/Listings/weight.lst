@@ -1,0 +1,414 @@
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE WEIGHT
+OBJECT MODULE PLACED IN .\Objects\weight.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE weight.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\weig
+                    -ht.lst) TABS(2) OBJECT(.\Objects\weight.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "uart.h"
+   3          #include "ds1302.h"
+   4          #include "hx711.h"
+   5          #include "buzzer.h"
+   6          #include "lcd1602.h"
+   7          #include "at24c02.h"
+   8          #include "delay.h"
+   9          
+  10          sbit LED=P2^4;
+  11          unsigned int Weight_Maopi = 0,Range=1000,qupi,num;
+  12          long Weight_Shiwu = 0;
+  13          unsigned char num_Store,Weight_Store_Num=0,mode,m4;
+  14          unsigned char ERROR1,Bad_Num1,Keynum,TimeSetSelect=7,TimeSetFlashFlag;
+  15          unsigned char Weight_Shiwu_Flag1,num_Flag,Weight_Shiwu_Flag2;
+  16          unsigned int Weight_Standard1,FanWei_Max,FanWei_Min;
+  17          int Weight_Standard=200;
+  18          char temp,m3,ERROR,Bad_Num,sum,Month,Day,Hour,Minute,m3_Flag;
+  19          //unsigned int Weight_Store[5]={0},Bad[5]={0};
+  20          unsigned char i,Weight_Flag,KeynumFlag1,k8,m3_qingling;
+  21          float T;
+  22          //校准参数
+  23          //因为不同的传感器特性曲线不是很一致，因此，每一个传感器需要矫正这里这个参数才能使测量值很准确。
+  24          //当发现测试出来的重量偏大时，增加该数值。
+  25          //如果测试出来的重量偏小时，减小改数值。
+  26          //该值可以为小数
+  27          #define GapValue 426.04
+  28          
+  29          /*---------------------------------------
+  30          //毛皮重量
+  31          -----------------------------------------*/
+  32          void Get_Maopi() 
+  33          {
+  34   1        //Weight_Maopi = HX711_Read();
+  35   1        qupi = Weight_Shiwu;  
+  36   1      }
+  37          /*---------------------------------------
+  38          串口
+  39          -----------------------------------------*/
+  40          void UART_Send_num()
+  41          {
+  42   1                          Send_Word("last time:\r\n");
+  43   1                          UART_SendByte(Month/10+0x30);
+  44   1                          UART_SendByte(Month%10+0x30);
+  45   1                          Send_Word("-");
+  46   1                          UART_SendByte(Day/10+0x30);
+  47   1                          UART_SendByte(Day%10+0x30);
+  48   1                          Send_Word(" ");
+  49   1                          UART_SendByte(Hour/10+0x30);
+  50   1                          UART_SendByte(Hour%10+0x30);
+  51   1                          Send_Word(":");
+  52   1                          UART_SendByte(Minute/10+0x30);
+  53   1                          UART_SendByte(Minute%10+0x30);
+  54   1                          Send_Word("\r\n");
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 2   
+
+  55   1                          Send_Word("last standard:\r\n");
+  56   1                          Send_Word("error: ");
+  57   1                          UART_SendByte(ERROR1/10+0x30);
+  58   1                          UART_SendByte(ERROR1%10+0x30);
+  59   1                          Send_Word(" weight: ");
+  60   1                          UART_SendByte(Weight_Standard1/1000+0x30);  //千位
+  61   1                          UART_SendByte(Weight_Standard1%1000/100+0x30);
+  62   1                          UART_SendByte(Weight_Standard1%100/10+0x30);
+  63   1                          UART_SendByte(Weight_Standard1%10+0x30);
+  64   1                          Send_Word("\r\n");
+  65   1                          Send_Word("last data:\r\n");
+  66   1                          Send_Word("sum: ");
+  67   1                          UART_SendByte(sum/100+0x30);
+  68   1                          UART_SendByte(sum%100/10+0x30);
+  69   1                          UART_SendByte(sum%10+0x30);
+  70   1                          Send_Word(" bad: ");
+  71   1                          UART_SendByte(Bad_Num1/100+0x30);
+  72   1                          UART_SendByte(Bad_Num1%100/10+0x30);
+  73   1                          UART_SendByte(Bad_Num1%10+0x30);
+  74   1                          Send_Word("\r\n");
+  75   1                          //循环一下发送数组里的数
+  76   1      }
+  77          /*---------------------------------------
+  78          时间展示
+  79          -----------------------------------------*/
+  80          void Timeshow(void)
+  81          {
+  82   1          DS1302_ReadTime();
+  83   1      
+  84   1          LCD_ShowNum(1,9,DS1302_Time[0],2);
+  85   1          LCD_ShowNum(1,12,DS1302_Time[1],2);
+  86   1          LCD_ShowNum(1,15,DS1302_Time[2],2);
+  87   1          LCD_ShowNum(2,9,DS1302_Time[3],2);
+  88   1          LCD_ShowNum(2,12,DS1302_Time[4],2);
+  89   1          LCD_ShowNum(2,15,DS1302_Time[5],2);
+  90   1      }
+  91          void TimeSet(void)
+  92          {
+  93   1      
+  94   1          if(Keynum==1)  //设置时间选择
+  95   1          {
+  96   2              TimeSetSelect--;
+  97   2              if(TimeSetSelect==0)TimeSetSelect=6;
+  98   2          }
+  99   1          if(Keynum==5)   //加只要判断过大界限就行
+ 100   1          {
+ 101   2              DS1302_Time[TimeSetSelect-1]++;
+ 102   2              if(DS1302_Time[0]>99){DS1302_Time[0]=0;}
+ 103   2              if(DS1302_Time[1]>12){DS1302_Time[1]=1;}
+ 104   2              if(DS1302_Time[1]==1 || DS1302_Time[1]==3 || DS1302_Time[1]==5 || DS1302_Time[1]==7 || DS1302_Time
+             -[1]==8
+ 105   2                 || DS1302_Time[1]==10 || DS1302_Time[1]==12)
+ 106   2              {
+ 107   3                  if(DS1302_Time[2]>31){DS1302_Time[2]=1;}
+ 108   3              }
+ 109   2              else if(DS1302_Time[1]==4 || DS1302_Time[1]==6 ||DS1302_Time[1]==9 ||DS1302_Time[1]==11)
+ 110   2              {
+ 111   3                  if(DS1302_Time[2]>30){DS1302_Time[2]=1;}
+ 112   3              }
+ 113   2              else if(DS1302_Time[1]==2)
+ 114   2              {
+ 115   3                  if(DS1302_Time[0]%4==0) //闰年
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 3   
+
+ 116   3                  {
+ 117   4                      if(DS1302_Time[2]>29){DS1302_Time[2]=1;}
+ 118   4                  }
+ 119   3                  else
+ 120   3                  {
+ 121   4                      if(DS1302_Time[2]>28){DS1302_Time[2]=1;}
+ 122   4                  }
+ 123   3              }
+ 124   2              if(DS1302_Time[3]>23){DS1302_Time[3]=0;}
+ 125   2              if(DS1302_Time[4]>59){DS1302_Time[4]=0;}
+ 126   2              if(DS1302_Time[5]>59){DS1302_Time[5]=0;}
+ 127   2          }
+ 128   1          if(Keynum==6)  //减要判断过大和过小界限
+ 129   1          {
+ 130   2              DS1302_Time[TimeSetSelect-1]--;
+ 131   2              if(DS1302_Time[0]<0){DS1302_Time[0]=99;}
+ 132   2              if(DS1302_Time[1]<1){DS1302_Time[1]=12;}
+ 133   2              if(DS1302_Time[1]==1 || DS1302_Time[1]==3 || DS1302_Time[1]==5 || DS1302_Time[1]==7 || DS1302_Time
+             -[1]==8
+ 134   2                 || DS1302_Time[1]==10 || DS1302_Time[1]==12)
+ 135   2              {
+ 136   3                  if(DS1302_Time[2]<1){DS1302_Time[2]=31;}
+ 137   3              }
+ 138   2              else if(DS1302_Time[1]==4 || DS1302_Time[1]==6 ||DS1302_Time[1]==9 ||DS1302_Time[1]==11)
+ 139   2              {
+ 140   3                  if(DS1302_Time[2]<1){DS1302_Time[2]=30;}
+ 141   3                  if(DS1302_Time[2]>31){DS1302_Time[2]=1;}
+ 142   3              }
+ 143   2              else if(DS1302_Time[1]==2)
+ 144   2              {
+ 145   3                  if(DS1302_Time[0]%4==0) //闰年
+ 146   3                  {
+ 147   4                      if(DS1302_Time[2]<1){DS1302_Time[2]=29;}
+ 148   4                      if(DS1302_Time[2]>29){DS1302_Time[2]=1;}
+ 149   4                  }
+ 150   3                  else
+ 151   3                  {
+ 152   4                      if(DS1302_Time[2]<1){DS1302_Time[2]=28;}
+ 153   4                      if(DS1302_Time[2]>28){DS1302_Time[2]=1;}
+ 154   4                  }
+ 155   3              }
+ 156   2              if(DS1302_Time[3]<0){DS1302_Time[3]=23;}
+ 157   2              if(DS1302_Time[4]<0){DS1302_Time[4]=59;}
+ 158   2              if(DS1302_Time[5]<0){DS1302_Time[5]=59;}
+ 159   2      
+ 160   2          }
+ 161   1          if(TimeSetFlashFlag==1 && (TimeSetSelect-1)==0){LCD_ShowString(1,9,"  ");}
+ 162   1          else{LCD_ShowNum(1,9,DS1302_Time[0],2);}
+ 163   1          if(TimeSetFlashFlag==1 && (TimeSetSelect-1)==1){LCD_ShowString(1,12,"  ");}
+ 164   1          else{LCD_ShowNum(1,12,DS1302_Time[1],2);}
+ 165   1          if(TimeSetFlashFlag==1 && (TimeSetSelect-1)==2){LCD_ShowString(1,15,"  ");}
+ 166   1          else{LCD_ShowNum(1,15,DS1302_Time[2],2);}
+ 167   1          if(TimeSetFlashFlag==1 &&(TimeSetSelect-1)==3){LCD_ShowString(2,9,"  ");}
+ 168   1          else{ LCD_ShowNum(2,9,DS1302_Time[3],2);}
+ 169   1          if(TimeSetFlashFlag==1 &&(TimeSetSelect-1)==4){LCD_ShowString(2,12,"  ");}
+ 170   1          else{LCD_ShowNum(2,12,DS1302_Time[4],2);}
+ 171   1          if(TimeSetFlashFlag==1 && (TimeSetSelect-1)==5){LCD_ShowString(2,15,"  ");}
+ 172   1          else{LCD_ShowNum(2,15,DS1302_Time[5],2);}
+ 173   1      }
+ 174          /*---------------------------------------
+ 175          储存的
+ 176          -----------------------------------------*/
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 4   
+
+ 177          void AT24C02_Readbyte_Data()
+ 178          {
+ 179   1        sum=AT24C02_Readbyte(0);
+ 180   1        Bad_Num1=AT24C02_Readbyte(1);
+ 181   1        Weight_Standard1=AT24C02_Readbyte(2);
+ 182   1        Weight_Standard1|=AT24C02_Readbyte(3)<<8; //高位16
+ 183   1        ERROR1=AT24C02_Readbyte(4);
+ 184   1        Month=AT24C02_Readbyte(5);
+ 185   1        Day=AT24C02_Readbyte(6);
+ 186   1        Hour=AT24C02_Readbyte(7);
+ 187   1        Minute=AT24C02_Readbyte(8);
+ 188   1      }
+ 189          void AT24C02_Writebyte_Data()
+ 190          {
+ 191   1                    AT24C02_Writebyte(0,sum);
+ 192   1                    Delay(5);
+ 193   1                    AT24C02_Writebyte(1,Bad_Num);
+ 194   1                    Delay(5);
+ 195   1                    AT24C02_Writebyte(2,Weight_Standard%256); //低位
+ 196   1                    Delay(5);
+ 197   1                    AT24C02_Writebyte(3,Weight_Standard/256); //高位
+ 198   1                    Delay(5);
+ 199   1                    AT24C02_Writebyte(4,ERROR);
+ 200   1                    Delay(5);
+ 201   1                    AT24C02_Writebyte(5,Month);//月日时分
+ 202   1                    Delay(5);
+ 203   1                    AT24C02_Writebyte(6,Day);
+ 204   1                    Delay(5);
+ 205   1                    AT24C02_Writebyte(7,Hour);
+ 206   1                    Delay(5);
+ 207   1                    AT24C02_Writebyte(8,Minute);
+ 208   1                    Delay(5);
+ 209   1                    AT24C02_Writebyte(9,m3_Flag);
+ 210   1                    Delay(5);
+ 211   1      }
+ 212          void AT24C02_Writebyte_qingling_data()
+ 213          {
+ 214   1                    AT24C02_Writebyte(0,0);
+ 215   1                    Delay(5);
+ 216   1                    AT24C02_Writebyte(1,0);
+ 217   1                    Delay(5);
+ 218   1                    AT24C02_Writebyte(2,0); //低位
+ 219   1                    Delay(5);
+ 220   1                    AT24C02_Writebyte(3,0); //高位
+ 221   1                    Delay(5);
+ 222   1                    AT24C02_Writebyte(4,0);
+ 223   1                    Delay(5);
+ 224   1                    AT24C02_Writebyte(5,0);//月日时分
+ 225   1                    Delay(5);
+ 226   1                    AT24C02_Writebyte(6,0);
+ 227   1                    Delay(5);
+ 228   1                    AT24C02_Writebyte(7,0);
+ 229   1                    Delay(5);
+ 230   1                    AT24C02_Writebyte(8,0);
+ 231   1                    Delay(5);
+ 232   1      }
+ 233          void AT24C02_Writebyte_qingling()
+ 234          {
+ 235   1                    AT24C02_Writebyte(0,0);
+ 236   1                    Delay(5);
+ 237   1                    AT24C02_Writebyte(1,0);
+ 238   1                    Delay(5);
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 5   
+
+ 239   1                    AT24C02_Writebyte(2,0); //低位
+ 240   1                    Delay(5);
+ 241   1                    AT24C02_Writebyte(3,0); //高位
+ 242   1                    Delay(5);
+ 243   1                    AT24C02_Writebyte(4,0);
+ 244   1                    Delay(5);
+ 245   1                    AT24C02_Writebyte(5,0);//月日时分
+ 246   1                    Delay(5);
+ 247   1                    AT24C02_Writebyte(6,0);
+ 248   1                    Delay(5);
+ 249   1                    AT24C02_Writebyte(7,0);
+ 250   1                    Delay(5);
+ 251   1                    AT24C02_Writebyte(8,0);
+ 252   1                    Delay(5);
+ 253   1                    AT24C02_Writebyte(9,0);
+ 254   1                    Delay(5);
+ 255   1      }
+ 256          /*---------------------------------------
+ 257          显示
+ 258          -----------------------------------------*/
+ 259          void Display_M2()
+ 260          {       
+ 261   1        LCD_ShowString(1,1,"MODE 2 MAX:");
+ 262   1        LCD_ShowNum(1,12,Range,4);
+ 263   1        LCD_ShowString(1,16,"G");
+ 264   1        LCD_ShowString(2,1,"WEIGHT:");
+ 265   1        LCD_ShowString(2,16,"G");
+ 266   1        LCD_ShowNum(2,12,Weight_Shiwu,4);
+ 267   1      
+ 268   1      }
+ 269          void Display_M1()
+ 270          {
+ 271   1        LCD_ShowString(1,9,"  -  -  ");
+ 272   1        LCD_ShowString(2,9,"  :  :  ");
+ 273   1        LCD_ShowString(1,1,"MODE 1  ");
+ 274   1      }
+ 275          void Display_qingping()
+ 276          {
+ 277   1        LCD_ShowString(1,1,"                ");
+ 278   1        LCD_ShowString(2,1,"                ");
+ 279   1      }
+ 280          void Display_M3()
+ 281          {
+ 282   1        LCD_ShowString(1,1,"MODE 3 ERROR:");
+ 283   1        LCD_ShowNum(1,14,ERROR,2);
+ 284   1        LCD_ShowString(1,16,"G");
+ 285   1        LCD_ShowString(2,1,"WEIGHT:");
+ 286   1        LCD_ShowString(2,16,"G");
+ 287   1        LCD_ShowNum(2,12,Weight_Standard,4);
+ 288   1        
+ 289   1      }
+ 290          void Display_M3_Measure()
+ 291          {
+ 292   1        LCD_ShowString(1,1,"MODE 3 NUM:");
+ 293   1        LCD_ShowNum(1,12,num,3);
+ 294   1        LCD_ShowString(2,1,"WEIGHT:");
+ 295   1        LCD_ShowString(2,16,"G");
+ 296   1        LCD_ShowNum(2,12,Weight_Shiwu,4);
+ 297   1        
+ 298   1      }
+ 299          void Display_M3_Store()
+ 300          {
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 6   
+
+ 301   1       LCD_ShowString(1,1,"save data ...");
+ 302   1      }
+ 303          void Display_M3_NotStore()
+ 304          {
+ 305   1       LCD_ShowString(1,1,"not save data");
+ 306   1      }
+ 307          void Display_M4_Standard()
+ 308          {
+ 309   1        LCD_ShowString(1,1,"Weight:");
+ 310   1        LCD_ShowNum(1,8,Weight_Standard1,4);
+ 311   1        LCD_ShowString(1,12,"G");
+ 312   1        LCD_ShowString(2,1,"ERROR:");
+ 313   1        LCD_ShowNum(2,7,ERROR1,2);  
+ 314   1        LCD_ShowString(2,9,"G");
+ 315   1      }
+ 316          void Display_M4_Num()
+ 317          {
+ 318   1        LCD_ShowString(1,1,"SUM:");
+ 319   1        LCD_ShowNum(1,5,sum,3);
+ 320   1        LCD_ShowString(2,1,"BadNum:");
+ 321   1        LCD_ShowNum(2,8,Bad_Num1,3);  
+ 322   1      }
+ 323          void Display_M4_Send()
+ 324          {
+ 325   1        LCD_ShowString(1,1,"SEND DATA ?");
+ 326   1        LCD_ShowString(2,1,"YES OR NO");
+ 327   1      }
+ 328          void Display_M4_successful()
+ 329          {
+ 330   1        LCD_ShowString(1,1,"send successfully");
+ 331   1      }
+ 332          void Display_M4_Time()
+ 333          {
+ 334   1        LCD_ShowString(1,1,"The Last Time:");
+ 335   1        LCD_ShowNum(2,1,Month,2);
+ 336   1        LCD_ShowString(2,3,"-");
+ 337   1        LCD_ShowNum(2,4,Day,2); 
+ 338   1        LCD_ShowString(2,6,"  ");
+ 339   1        LCD_ShowNum(2,8,Hour,2);
+ 340   1        LCD_ShowString(2,10,":");
+ 341   1        LCD_ShowNum(2,11,Minute,2);
+ 342   1      }
+ 343          void Display_M4_UART()
+ 344          {
+ 345   1        LCD_ShowString(1,1,"SANDING DATA...");
+ 346   1      }
+ 347          
+ 348          /*---------------------------------------
+ 349          //获取重量
+ 350          -----------------------------------------*/
+ 351          void Get_Weight()
+ 352          {
+ 353   1        Weight_Shiwu = HX711_Read();  //HX711读取
+ 354   1        Weight_Shiwu = Weight_Shiwu - Weight_Maopi;   //获取净重
+ 355   1        Weight_Shiwu = (unsigned int)((float)(Weight_Shiwu)/GapValue)-qupi;   //计算实物的实际重量  
+ 356   1        Weight_Shiwu -= 18600;
+ 357   1          if(Weight_Shiwu<=0 ||Weight_Shiwu>5000)
+ 358   1          {
+ 359   2          //LED=1;
+ 360   2          Weight_Shiwu=0;
+ 361   2          }
+ 362   1          if(Weight_Shiwu>0 && Weight_Shiwu<=5000)
+C51 COMPILER V9.54   WEIGHT                                                                10/31/2024 21:36:11 PAGE 7   
+
+ 363   1          {
+ 364   2            //LED=1;  
+ 365   2            if(Weight_Shiwu > Range && mode==2)   //超重报警
+ 366   2            {
+ 367   3              Buzzer_Time(100);
+ 368   3              //LED=!LED;           //LED灯取反
+ 369   3              LED=0;
+ 370   3            }
+ 371   2              else if(mode==2 && Weight_Shiwu <= Range)
+ 372   2              {
+ 373   3                LED=1;
+ 374   3              } 
+ 375   2          }
+ 376   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2722    ----
+   CONSTANT SIZE    =    305    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     51    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

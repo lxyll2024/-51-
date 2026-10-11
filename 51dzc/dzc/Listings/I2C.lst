@@ -1,0 +1,91 @@
+C51 COMPILER V9.54   I2C                                                                   10/31/2024 21:36:12 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE I2C
+OBJECT MODULE PLACED IN .\Objects\I2C.obj
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE I2C.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\I2C.lst
+                    -) TABS(2) OBJECT(.\Objects\I2C.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          //Ë«Ïò¶þÏßÖÆÍ¬²½´®ÐÐ×ÜÏßI2c×ÜÏß
+   3          //Ê±ÐòÍ¼£¬6¸öÆ´Í¼£¬×é³ÉÒ»¸öÊý¾ÝÖ¡
+   4          //AT24C02.c ¿ÉÒÔ½¨¸öÄ£¿é£¬ÓÃÀ´ÏÂÔØ¿ª¹ØµôµçºóÒÀ¾É¿ÉÒÔ´¢´æ = e2prom
+   5          sbit I2C_SCL = P2^1;  //À­¸ß,ÖÜÆÚ
+   6          sbit I2C_SDA = P2^0;  //1 0±ä»¯£¬½ÓÊÕ·¢ËÍ
+   7          
+   8          void I2C_Start(void)    //¿ªÊ¼·¢ËÍÊý¾Ý ³õÊ¼»¯   I2CÊý¾ÝÖ¡
+   9          {
+  10   1          I2C_SDA = 1;      //Á½ÌõÊý¾ÝÏß¶¼ÊÇ¸ßµçÆ½¿ªÊ¼ÔÚ¸øµÍµçÆµÎªÁËÄÜ½ÓÉÏÁù¸öÍ¼ ÏÈ1ºó0Í¼³ÊÏÂ½µÇ÷ÊÆ
+  11   1          I2C_SCL = 1;      //Í¬ÉÏ£¬SCL = 1 ÆÚ¼äSDA¿ÉÏÂ½µ£¬ËùÒÔÏÈSDA=0
+  12   1          I2C_SDA = 0;      //Á½ÌõÏß¿ªÊ¼¹¤×÷
+  13   1          I2C_SCL = 0;      //Í¬ÉÏ
+  14   1      }
+  15          void I2C_Stop(void)   //Í£Ö¹£¬Êý¾ÝÖ¡½áÊø±£Ö¤ÉÏÉýÇ÷ÊÆ0-1£¬µ«´ËÊ±Î´ÖªËüÊÇ·ñÔÚ0£¬×Ô¼ºÉèËùÒÔ
+  16          {
+  17   1          I2C_SDA = 0;    //ÏÈÖÃ0±äµÍ£¬±£Ö¤SCL´¦¸ßµçÆ½ÆÚ¼ä²Å¿ÉÒÔ±ä»¯
+  18   1          I2C_SCL = 1;    //±ä»¯Ìõ¼þ
+  19   1          I2C_SDA = 1;    //0-1ÉÏÉýÇ÷ÊÆ½áÊø   
+  20   1      }
+  21          void I2C_Sendbyte(unsigned char byte)   //·¢ËÍ×Ö½Ú
+  22          {
+  23   1        unsigned char i;
+  24   1        for(i = 0;i < 8;i++)
+  25   1        {                                 //SDA¿ªÊ¼ÊÇ0£¬·¢ËÍºóÓÐ±ä»¯Îª1£¬Ã»±ä»¯Îª0
+  26   2          I2C_SDA = byte&(0x80>>i);   //Óë×î¸ßÎ»±È½Ï£¬0Îª0,1Îª1,·¢ËÍ×Ö½ÚÒ»¹²ÓÐ°Ë¸ö£¬·¢ËÍÍê²ÅÍ££¬×óÒÆÒ»¸ö¸ö±È½ÏÊÇ·ñÎ
+             -ª1
+  27   2          I2C_SCL = 1;                //±È½ÏÍêÈ·¶¨ÊýÖµ£¬´æµÄÌõ¼þ£¬SCLÀ­Ò»ÏÂ
+  28   2          I2C_SCL = 0;            //À­¸ßºóÁ¢¿Ì½µµÍ
+  29   2        }
+  30   1      }
+  31          
+  32          unsigned char I2C_Receivebyte(void)   //½ÓÊÕ×Ö½Ú
+  33          {
+  34   1          unsigned char i,byte = 0x00;
+  35   1          
+  36   1          I2C_SDA = 1;      //½ÓÊÕÇ°ÏÈÖÃ1
+  37   1        
+  38   1          for(i = 0;i < 8;i++)
+  39   1        {
+  40   2          I2C_SCL = 1;      //À­¸ß
+  41   2          if(I2C_SDA){byte|= (0x80>>i);}    //Èç¹û¶ÁÈ¡1£¬°Ñbyte¸ßÎ»ÖÃ1 ,Ç°Ãæ·¢ËÍµÄÓÐ1±ä»¯µÄ¶ÁÈ¡½ÓÊÕ
+  42   2          I2C_SCL = 0;                //½ÓÊÕºó±äµÍ¹Ø±Õ±ä¶¯
+  43   2        }
+  44   1          return byte;      //µÃµ½ÍêÕûµÄ8Î»×Ö½Ú½ÓÊÕ
+  45   1        
+  46   1      }
+  47          
+  48          void I2C_Sendack(unsigned char ackbit)    //Ó¦´ðÎ»·¢ËÍ,1Ó¦´ð£¬0²»Ó¦´ð
+  49          {
+  50   1          I2C_SDA = ackbit;
+  51   1          I2C_SCL = 1;    //SDA±ä»¯Ìõ¼þ
+  52   1          I2C_SCL = 0;
+  53   1      }
+C51 COMPILER V9.54   I2C                                                                   10/31/2024 21:36:12 PAGE 2   
+
+  54          
+  55          unsigned char I2C_Receiveack(void)    //Ó¦´ð½ÓÊÕ
+  56          {
+  57   1          unsigned char ackbit;   //Ä¬ÈÏÎª0
+  58   1          I2C_SDA = 1;
+  59   1          I2C_SCL = 1;  
+  60   1          ackbit = I2C_SDA;   //SDAÊÇÎ»£¬½ÓÊÕÓ¦´ð
+  61   1          I2C_SDA = 0;        //Î»Çå0
+  62   1          I2C_SCL = 0;
+  63   1          return ackbit;
+  64   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    111    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
